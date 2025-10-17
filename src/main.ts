@@ -2,7 +2,7 @@
 import "./style.css";
 
 document.body.innerHTML = `
-  <h1>Draw the Thing!</h1>
+  <h1>Sticker Sketchpad</h1>
 
   <div id="sketch-wrap">
     <canvas id="sketchpad" style="border:1px solid black;"></canvas>
