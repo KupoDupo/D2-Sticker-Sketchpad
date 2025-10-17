@@ -3,3 +3,15 @@
   vertical-align: top;
   border: 1px solid salmon;
 }
+
+body {
+  font-family: "Delius", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.sketch-wrap {
+  border: 5px dashed black;
+  background-color: #d6c499;
+  border-radius: 8px;
+}
