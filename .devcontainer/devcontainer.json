@@ -13,7 +13,8 @@
     "vscode": {
       "extensions": [
         "denoland.vscode-deno",
-        "davidanson.vscode-markdownlint"
+        "davidanson.vscode-markdownlint",
+        "GitHub.copilot-chat"
       ]
     }
   }
