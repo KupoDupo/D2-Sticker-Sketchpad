@@ -6,6 +6,8 @@ document.body.innerHTML = `
   <div id="sketch-wrap">
     <canvas id="sketchpad" style="border:1px solid black;"></canvas>
     <div style="margin-top:8px;">
+      <button id="thinBtn">Thin</button>
+      <button id="thickBtn">Thick</button>
       <button id="undoBtn">Undo</button>
       <button id="redoBtn">Redo</button>
       <button id="clearBtn">Clear</button>
@@ -31,16 +33,19 @@ export interface MarkerLine {
 
 // Optional constructor signature type for MarkerLine implementations.
 export interface MarkerLineConstructor {
-  new (x: number, y: number): MarkerLine;
+  // third parameter is optional thickness for the marker
+  new (x: number, y: number, thickness?: number): MarkerLine;
 }
 
 // SimpleMarkerLine is a straightforward implementation of MarkerLine that
 // stores an array of Point internally.
 class SimpleMarkerLine implements MarkerLine {
   private points: Point[];
+  private thickness: number;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, thickness = 1) {
     this.points = [{ x, y }];
+    this.thickness = thickness;
   }
 
   drag(x: number, y: number) {
@@ -50,7 +55,7 @@ class SimpleMarkerLine implements MarkerLine {
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length === 0) return;
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth = this.thickness;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.strokeStyle = "black";
@@ -59,7 +64,8 @@ class SimpleMarkerLine implements MarkerLine {
     if (this.points.length === 1) {
       const p = this.points[0];
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+      // radius scaled with thickness for visibility
+      ctx.arc(p.x, p.y, Math.max(1, this.thickness), 0, Math.PI * 2);
       ctx.fill();
       return;
     }
@@ -78,9 +84,28 @@ const strokes: MarkerLine[] = [];
 
 const cursor = { active: false, x: 0, y: 0 };
 
+const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
+const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
+
+// currentThickness determines the thickness for the next line drawn
+let currentThickness = 1;
+
+// Tool button wiring
+thinBtn.onclick = () => {
+  currentThickness = 1;
+  thinBtn.disabled = true;
+  thickBtn.disabled = false;
+};
+thickBtn.onclick = () => {
+  currentThickness = 4;
+  thickBtn.disabled = true;
+  thinBtn.disabled = false;
+};
+// default selection: thin
+thinBtn.disabled = true;
 
 // redoStack holds MarkerLine objects that were undone so they can be redone
 const redoStack: MarkerLine[] = [];
@@ -126,8 +151,8 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.y = e.offsetY;
   cursor.active = true;
 
-  // start a new stroke with the initial point
-  strokes.push(new SimpleMarkerLine(cursor.x, cursor.y));
+  // start a new stroke with the initial point and current thickness
+  strokes.push(new SimpleMarkerLine(cursor.x, cursor.y, currentThickness));
   // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
