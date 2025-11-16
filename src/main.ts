@@ -9,6 +9,9 @@ document.body.innerHTML = `
     <div style="margin-top:8px;">
       <button id="thinBtn">Thin</button>
       <button id="thickBtn">Thick</button>
+      <button id="flowerBtn">🌸 Flower</button>
+      <button id="teddyBtn">🧸 Teddy</button>
+      <button id="sparkleBtn">✨ Sparkle</button>
       <button id="undoBtn">Undo</button>
       <button id="redoBtn">Redo</button>
       <button id="clearBtn">Clear</button>
@@ -159,10 +162,55 @@ const markerImg = new Image();
 markerImg.src = marker;
 markerImg.onload = () => canvas.dispatchEvent(new Event("drawing-changed"));
 
+// Sticker implements MarkerLine to represent an emoji sticker on the canvas.
+// It stores a single emoji character and a position; drag() updates the position.
+class Sticker implements MarkerLine {
+  private x: number;
+  private y: number;
+
+  constructor(x: number, y: number, private emoji: string) {
+    this.x = x;
+    this.y = y;
+  }
+
+  drag(x: number, y: number) {
+    // reposition the sticker rather than tracking a path
+    this.x = x;
+    this.y = y;
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.font = "32px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.restore();
+  }
+}
+
+// EmojiPreview shows a preview of the selected emoji at the pointer.
+class EmojiPreview implements ToolPreview {
+  constructor(private x: number, private y: number, private emoji: string) {}
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.font = "32px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.restore();
+  }
+}
+
 const cursor = { active: false, x: 0, y: 0 };
 
 const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
 const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
+const flowerBtn = document.getElementById("flowerBtn") as HTMLButtonElement;
+const teddyBtn = document.getElementById("teddyBtn") as HTMLButtonElement;
+const sparkleBtn = document.getElementById("sparkleBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
@@ -170,16 +218,51 @@ const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 // currentThickness determines the thickness for the next line drawn
 let currentThickness = 1;
 
+// currentEmoji tracks the active emoji tool, or null if no emoji tool is selected
+let currentEmoji: string | null = null;
+
 // Tool button wiring
 thinBtn.onclick = () => {
   currentThickness = 1;
+  currentEmoji = null;
   thinBtn.disabled = true;
   thickBtn.disabled = false;
+  flowerBtn.disabled = false;
+  teddyBtn.disabled = false;
+  sparkleBtn.disabled = false;
 };
 thickBtn.onclick = () => {
   currentThickness = 4;
+  currentEmoji = null;
   thickBtn.disabled = true;
   thinBtn.disabled = false;
+  flowerBtn.disabled = false;
+  teddyBtn.disabled = false;
+  sparkleBtn.disabled = false;
+};
+flowerBtn.onclick = () => {
+  currentEmoji = "🌸";
+  flowerBtn.disabled = true;
+  teddyBtn.disabled = false;
+  sparkleBtn.disabled = false;
+  thinBtn.disabled = false;
+  thickBtn.disabled = false;
+};
+teddyBtn.onclick = () => {
+  currentEmoji = "🧸";
+  teddyBtn.disabled = true;
+  flowerBtn.disabled = false;
+  sparkleBtn.disabled = false;
+  thinBtn.disabled = false;
+  thickBtn.disabled = false;
+};
+sparkleBtn.onclick = () => {
+  currentEmoji = "✨";
+  sparkleBtn.disabled = true;
+  flowerBtn.disabled = false;
+  teddyBtn.disabled = false;
+  thinBtn.disabled = false;
+  thickBtn.disabled = false;
 };
 // default selection: thin
 thinBtn.disabled = true;
@@ -239,8 +322,12 @@ canvas.addEventListener("mousedown", (e) => {
   // hide preview while drawing
   preview = null;
 
-  // start a new stroke with the initial point and current thickness
-  strokes.push(new SimpleMarkerLine(cursor.x, cursor.y, currentThickness));
+  // create either a marker line or an emoji sticker based on active tool
+  if (currentEmoji) {
+    strokes.push(new Sticker(cursor.x, cursor.y, currentEmoji));
+  } else {
+    strokes.push(new SimpleMarkerLine(cursor.x, cursor.y, currentThickness));
+  }
   // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
@@ -287,8 +374,12 @@ canvas.addEventListener("tool-moused", (ev) => {
     // while drawing we hide the preview
     preview = null;
   } else {
-    // create/update preview at pointer location with selected thickness
-    preview = new MarkerPreview(d.x, d.y, d.thickness, markerImg);
+    // create/update preview based on active tool
+    if (currentEmoji) {
+      preview = new EmojiPreview(d.x, d.y, currentEmoji);
+    } else {
+      preview = new MarkerPreview(d.x, d.y, d.thickness, markerImg);
+    }
   }
   // redraw to show/hide preview
   canvas.dispatchEvent(new Event("drawing-changed"));
