@@ -16,6 +16,7 @@ document.body.innerHTML = `
       <button id="undoBtn">Undo</button>
       <button id="redoBtn">Redo</button>
       <button id="clearBtn">Clear</button>
+      <button id="exportBtn">Export PNG</button>
     </div>
   </div>
 `;
@@ -216,6 +217,7 @@ const customBtn = document.getElementById("customBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
+const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
 
 // currentThickness determines the thickness for the next line drawn
 let currentThickness = 1;
@@ -342,6 +344,37 @@ clearBtn.onclick = () => {
   // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
+};
+
+// Add Export button to the UI
+exportBtn.onclick = () => {
+  // Create a new offscreen canvas
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+  // Scale context so 256x256 content fills 1024x1024
+  exportCtx.save();
+  exportCtx.scale(4, 4);
+  // Draw all display list items (no preview)
+  for (const stroke of strokes) {
+    stroke.display(exportCtx);
+  }
+  exportCtx.restore();
+  // Download as PNG
+  exportCanvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sketchpad-export.png";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }, "image/png");
 };
 
 // Redraw handler — listens to custom "drawing-changed" events
