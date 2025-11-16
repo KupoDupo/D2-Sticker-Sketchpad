@@ -1,3 +1,4 @@
+import marker from "./marker.png";
 import "./style.css";
 
 document.body.innerHTML = `
@@ -80,7 +81,83 @@ class SimpleMarkerLine implements MarkerLine {
 }
 
 // strokes is an array of MarkerLine objects
+// A ClearMarkerLine represents a "clear screen" command in the display list.
+// When drawn it clears the entire canvas. It implements MarkerLine so it can
+// live in the same display list as other MarkerLine objects; its `drag`
+// implementation is a no-op.
+class ClearMarkerLine implements MarkerLine {
+  drag(_x: number, _y: number) {
+    // no-op
+  }
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  }
+}
+
 const strokes: MarkerLine[] = [];
+
+// Tool preview abstraction: an object that can draw itself to the canvas.
+export interface ToolPreview {
+  draw(ctx: CanvasRenderingContext2D): void;
+}
+
+// Global nullable preview reference — set by tool-moused listener
+let preview: ToolPreview | null = null;
+
+// MarkerPreview draws the provided `marker.png` centered at the given
+// coordinates scaled to roughly match the marker thickness.
+class MarkerPreview implements ToolPreview {
+  constructor(
+    private x: number,
+    private y: number,
+    private thickness: number,
+    private img: HTMLImageElement,
+  ) {}
+
+  draw(ctx: CanvasRenderingContext2D) {
+    const base = 16; // base size in px for thickness=1
+    const size = base * Math.max(0.5, this.thickness);
+    const half = size / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    // Adjust the image so the marker's tip appears at the pointer.
+    // Tip-align: assume the tip is at the bottom-center of the image.
+    const tipOffsetX = 6; // nudge right
+    const tipOffsetY = -6; // nudge up
+    if (this.img.complete) {
+      // position top-left so bottom-center of image is at (this.x, this.y), then apply nudge
+      const dx = this.x - half + tipOffsetX;
+      const dy = this.y - size + tipOffsetY;
+      ctx.drawImage(this.img, dx, dy, size, size);
+    } else {
+      // fallback: draw a simple asterisk-like preview scaled by thickness
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = Math.max(1, this.thickness);
+      const len = Math.max(6, size / 2);
+      const cx = this.x + tipOffsetX; // center adjusted so tip aligns
+      const cy = this.y + tipOffsetY;
+      ctx.beginPath();
+      // vertical
+      ctx.moveTo(cx, cy - len);
+      ctx.lineTo(cx, cy + len);
+      // horizontal
+      ctx.moveTo(cx - len, cy);
+      ctx.lineTo(cx + len, cy);
+      // diagonals
+      ctx.moveTo(cx - len * 0.7, cy - len * 0.7);
+      ctx.lineTo(cx + len * 0.7, cy + len * 0.7);
+      ctx.moveTo(cx - len * 0.7, cy + len * 0.7);
+      ctx.lineTo(cx + len * 0.7, cy - len * 0.7);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+// Create an Image element from the imported marker URL and redraw when ready
+const markerImg = new Image();
+markerImg.src = marker;
+markerImg.onload = () => canvas.dispatchEvent(new Event("drawing-changed"));
 
 const cursor = { active: false, x: 0, y: 0 };
 
@@ -128,10 +205,14 @@ redoBtn.onclick = () => {
 };
 
 clearBtn.onclick = () => {
-  // clear model and view, then notify observers
-  strokes.length = 0;
+  // If the last item is already a ClearMarkerLine, do nothing (coalesce)
+  const last = strokes[strokes.length - 1];
+  if (last instanceof ClearMarkerLine) return;
+
+  // push a clear command onto the display list so it can be undone
+  strokes.push(new ClearMarkerLine());
+  // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   canvas.dispatchEvent(new Event("drawing-changed"));
 };
 
@@ -144,12 +225,19 @@ canvas.addEventListener("drawing-changed", () => {
   for (const stroke of strokes) {
     stroke.display(ctx);
   }
+
+  // draw the preview on top (only when not actively drawing)
+  if (!cursor.active && preview) {
+    preview.draw(ctx);
+  }
 });
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
   cursor.active = true;
+  // hide preview while drawing
+  preview = null;
 
   // start a new stroke with the initial point and current thickness
   strokes.push(new SimpleMarkerLine(cursor.x, cursor.y, currentThickness));
@@ -159,6 +247,17 @@ canvas.addEventListener("mousedown", (e) => {
 });
 
 canvas.addEventListener("mousemove", (e) => {
+  // Notify listeners about tool-related mouse movement (preview, cursors, etc.)
+  canvas.dispatchEvent(
+    new CustomEvent("tool-moused", {
+      detail: {
+        x: e.offsetX,
+        y: e.offsetY,
+        active: cursor.active,
+        thickness: currentThickness,
+      },
+    }),
+  );
   if (cursor.active) {
     // append point to current stroke
     const pt = { x: e.offsetX, y: e.offsetY };
@@ -175,6 +274,26 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
+// Listen for tool movement to update the preview object. We only show the
+// preview when the user is not actively drawing (cursor.active === false).
+canvas.addEventListener("tool-moused", (ev) => {
+  const d = (ev as CustomEvent).detail as {
+    x: number;
+    y: number;
+    active: boolean;
+    thickness: number;
+  };
+  if (d.active) {
+    // while drawing we hide the preview
+    preview = null;
+  } else {
+    // create/update preview at pointer location with selected thickness
+    preview = new MarkerPreview(d.x, d.y, d.thickness, markerImg);
+  }
+  // redraw to show/hide preview
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
 canvas.addEventListener("mouseup", () => {
   cursor.active = false;
 });
@@ -182,4 +301,7 @@ canvas.addEventListener("mouseup", () => {
 // also stop drawing if the pointer leaves the canvas
 canvas.addEventListener("mouseleave", () => {
   cursor.active = false;
+  // hide preview when the pointer leaves canvas
+  preview = null;
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
