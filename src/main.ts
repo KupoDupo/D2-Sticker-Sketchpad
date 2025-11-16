@@ -12,6 +12,7 @@ document.body.innerHTML = `
       <button id="flowerBtn">🌸 Flower</button>
       <button id="teddyBtn">🧸 Teddy</button>
       <button id="sparkleBtn">✨ Sparkle</button>
+      <button id="customBtn">+ Custom</button>
       <button id="undoBtn">Undo</button>
       <button id="redoBtn">Redo</button>
       <button id="clearBtn">Clear</button>
@@ -211,6 +212,7 @@ const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
 const flowerBtn = document.getElementById("flowerBtn") as HTMLButtonElement;
 const teddyBtn = document.getElementById("teddyBtn") as HTMLButtonElement;
 const sparkleBtn = document.getElementById("sparkleBtn") as HTMLButtonElement;
+const customBtn = document.getElementById("customBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
@@ -220,6 +222,35 @@ let currentThickness = 1;
 
 // currentEmoji tracks the active emoji tool, or null if no emoji tool is selected
 let currentEmoji: string | null = null;
+
+// customStickers holds all custom stickers created by the user in this session
+const customStickers: string[] = [];
+
+// Helper function to create a button for a custom sticker
+function createCustomStickerButton(sticker: string, index: number) {
+  const btn = document.createElement("button");
+  btn.textContent = sticker;
+  btn.onclick = () => {
+    currentEmoji = sticker;
+    // disable all other buttons and enable others
+    thinBtn.disabled = false;
+    thickBtn.disabled = false;
+    flowerBtn.disabled = false;
+    teddyBtn.disabled = false;
+    sparkleBtn.disabled = false;
+    customBtn.disabled = false;
+    // disable all custom sticker buttons except this one
+    const customBtns = document.querySelectorAll("button[data-custom]");
+    customBtns.forEach((b) => {
+      (b as HTMLButtonElement).disabled =
+        b.getAttribute("data-index") === String(index);
+    });
+  };
+  btn.setAttribute("data-custom", "true");
+  btn.setAttribute("data-index", String(index));
+  // insert before undo button
+  undoBtn.parentNode?.insertBefore(btn, undoBtn);
+}
 
 // Tool button wiring
 thinBtn.onclick = () => {
@@ -263,6 +294,20 @@ sparkleBtn.onclick = () => {
   teddyBtn.disabled = false;
   thinBtn.disabled = false;
   thickBtn.disabled = false;
+  customBtn.disabled = false;
+  // disable all custom sticker buttons
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
+};
+customBtn.onclick = () => {
+  const input = prompt("Enter a custom sticker (emoji or text):", "😀");
+  if (input && input.trim()) {
+    customStickers.push(input.trim());
+    // create and enable a new button for this custom sticker
+    createCustomStickerButton(input.trim(), customStickers.length - 1);
+  }
 };
 // default selection: thin
 thinBtn.disabled = true;
