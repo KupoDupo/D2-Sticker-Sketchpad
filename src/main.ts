@@ -24,7 +24,8 @@ document.body.innerHTML = `
 const canvas = document.getElementById("sketchpad") as HTMLCanvasElement;
 canvas.width = 256;
 canvas.height = 256;
-document.body.append(canvas);
+// Remove this line to keep canvas in its HTML position
+// document.body.append(canvas);
 
 const ctx = canvas.getContext("2d")!;
 
@@ -64,8 +65,6 @@ class SimpleMarkerLine implements MarkerLine {
     ctx.lineWidth = this.thickness;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.strokeStyle = "black";
-    ctx.fillStyle = "black";
 
     if (this.points.length === 1) {
       const p = this.points[0];
@@ -404,7 +403,7 @@ canvas.addEventListener("mousedown", (e) => {
   if (currentEmoji) {
     strokes.push(new Sticker(cursor.x, cursor.y, currentEmoji));
   } else {
-    strokes.push(new SimpleMarkerLine(cursor.x, cursor.y, currentThickness));
+    strokes.push(createMarkerLine(cursor.x, cursor.y, currentThickness));
   }
   // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
@@ -474,3 +473,40 @@ canvas.addEventListener("mouseleave", () => {
   preview = null;
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
+
+// Add color picker button to the UI
+const colorLabel = document.createElement("label");
+colorLabel.textContent = " Color: ";
+const colorInput = document.createElement("input");
+colorInput.type = "color";
+colorInput.value = "#000000";
+colorInput.id = "colorPicker";
+colorLabel.appendChild(colorInput);
+clearBtn.parentNode?.insertBefore(colorLabel, clearBtn);
+
+// Track current marker color
+let currentColor = "#000000";
+colorInput.oninput = (e) => {
+  currentColor = (e.target as HTMLInputElement).value;
+};
+
+// Color-aware marker line implementation
+class SimpleMarkerLineWithColor extends SimpleMarkerLine {
+  private color: string;
+  constructor(x: number, y: number, thickness = 1, color: string) {
+    super(x, y, thickness);
+    this.color = color;
+  }
+  override display(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    super.display(ctx);
+    ctx.restore();
+  }
+}
+
+// Factory function for creating marker lines with the current color
+function createMarkerLine(x: number, y: number, thickness: number) {
+  return new SimpleMarkerLineWithColor(x, y, thickness, currentColor);
+}
