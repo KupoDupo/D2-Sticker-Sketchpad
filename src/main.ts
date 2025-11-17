@@ -2,30 +2,48 @@ import marker from "./marker.png";
 import "./style.css";
 
 document.body.innerHTML = `
-  <h1>Sticker Sketchpad</h1>
+<div class="sketchwrap">
+  <div class="title">
+    <h1>Sticker Sketchpad</h1>
 
-  <div id="sketch-wrap">
     <canvas id="sketchpad" style="border:1px solid black;"></canvas>
-    <div style="margin-top:8px;">
-      <button id="thinBtn">Thin</button>
-      <button id="thickBtn">Thick</button>
-      <button id="flowerBtn">🌸 Flower</button>
-      <button id="teddyBtn">🧸 Teddy</button>
-      <button id="sparkleBtn">✨ Sparkle</button>
-      <button id="customBtn">+ Custom</button>
-      <button id="undoBtn">Undo</button>
-      <button id="redoBtn">Redo</button>
-      <button id="clearBtn">Clear</button>
-      <button id="exportBtn">Export PNG</button>
+  </div>
+  <div class="tools-container">
+    <div id="tools">
+      <div id="pens" class="tool-group">
+        <h2>Markers</h2>
+        <button id="thinBtn">Thin</button>
+        <button id="thickBtn">Thick</button>
+        <div id="colorBin"></div>
+      </div>
+      <div id="stickers" class="tool-group">
+        <h2>Stickers</h2>
+        <button id="flowerBtn">🌸 Flower</button>
+        <button id="teddyBtn">🧸 Teddy</button>
+        <button id="sparkleBtn">✨ Sparkle</button>
+      </div>
+      <div id="custom" class="tool-group">
+        <h2>Custom Sticker</h2>
+        <button id="customBtn">+ Custom</button>
+      </div>
+      <div id="actions" class="tool-group">
+        <h2>Actions</h2>
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+      <div id="export" class="tool-group">
+        <h2>Export</h2>
+        <button id="exportBtn">Export PNG</button>
+      </div>
     </div>
   </div>
+</div>
 `;
 
 const canvas = document.getElementById("sketchpad") as HTMLCanvasElement;
-canvas.width = 256;
-canvas.height = 256;
-// Remove this line to keep canvas in its HTML position
-// document.body.append(canvas);
+canvas.width = 512;
+canvas.height = 512;
 
 const ctx = canvas.getContext("2d")!;
 
@@ -119,15 +137,14 @@ class MarkerPreview implements ToolPreview {
   ) {}
 
   draw(ctx: CanvasRenderingContext2D) {
-    const base = 16; // base size in px for thickness=1
-    const size = base * Math.max(0.5, this.thickness);
+    const size = 32;
     const half = size / 2;
     ctx.save();
     ctx.globalAlpha = 0.9;
     // Adjust the image so the marker's tip appears at the pointer.
     // Tip-align: assume the tip is at the bottom-center of the image.
-    const tipOffsetX = 6; // nudge right
-    const tipOffsetY = -6; // nudge up
+    const tipOffsetX = 15; // nudge right
+    const tipOffsetY = 0; // nudge up
     if (this.img.complete) {
       // position top-left so bottom-center of image is at (this.x, this.y), then apply nudge
       const dx = this.x - half + tipOffsetX;
@@ -209,6 +226,7 @@ const cursor = { active: false, x: 0, y: 0 };
 
 const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
 const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
+const colorBin = document.getElementById("colorBin") as HTMLDivElement;
 const flowerBtn = document.getElementById("flowerBtn") as HTMLButtonElement;
 const teddyBtn = document.getElementById("teddyBtn") as HTMLButtonElement;
 const sparkleBtn = document.getElementById("sparkleBtn") as HTMLButtonElement;
@@ -482,7 +500,7 @@ colorInput.type = "color";
 colorInput.value = "#000000";
 colorInput.id = "colorPicker";
 colorLabel.appendChild(colorInput);
-clearBtn.parentNode?.insertBefore(colorLabel, clearBtn);
+colorBin.parentNode?.insertBefore(colorLabel, colorBin);
 
 // Track current marker color
 let currentColor = "#000000";

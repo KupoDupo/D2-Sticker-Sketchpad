@@ -1,9 +1,53 @@
 body {
+  height: 100vh;
+  font-family: "Delius", cursive;
+  font-weight: 400;
+  font-style: normal;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fda1bf 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, #afc2fa 0%, transparent 50%),
+    radial-gradient(circle at 40% 70%, #f4d891 0%, transparent 50%),
+    radial-gradient(circle at 70% 20%, #c8b5ff 0%, transparent 50%),
+    radial-gradient(circle at 10% 80%, #ffaad7 0%, transparent 50%);
+  overflow-y: hidden;
+}
+
+button {
   font-family: "Delius", cursive;
   font-weight: 400;
   font-style: normal;
 }
 
+.title {
+  text-align: center;
+  margin-right: 15px;
+}
+
+.sketchwrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 #sketchpad {
   cursor: none;
+  background-color: white;
+}
+
+#tools {
+  display: flex;
+  flex-direction: column;
+}
+
+@media screen and (max-width: 600px) {
+  #sketchpad {
+    width: 256px;
+    height: 256px;
+  }
+
+  .sketchwrap {
+    flex-direction: column;
+  }
 }
