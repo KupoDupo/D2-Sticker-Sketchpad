@@ -1,7 +1,7 @@
 # CMPM 121 D2 Project
 
-This is the starting point for your CMPM 121 D2 project. Students should make sure to remove _this_ content from their README.md file and replace it with their own project documentation.
+Completed D2 assignment and added own spin! Thin, thick, highlight buttons and emoji/text stickers. Color wheel for picking own colors, clear/redo/undo actions, and export button. Export PNGs can have a white bg or transparent. A sticker sketchpad complete!
 
 ## Credit
 
-Marker icon is from "Marker icon by Icons8"
+Marker icon is from "Marker icon by Icons8".

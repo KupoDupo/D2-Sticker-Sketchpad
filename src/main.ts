@@ -41,6 +41,16 @@ document.body.innerHTML = `
     </div>
   </div>
 </div>
+<div id="exportModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <p>Choose background for PNG:</p>
+    <div id="buttons">
+      <button id="exportTransparentBtn">Transparent</button>
+      <button id="exportWhiteBtn">White</button>
+    </div>
+    <button onclick="document.getElementById('exportModal').style.display='none'" style="margin-top: 10px;">Cancel</button>
+  </div>
+</div>
 `;
 
 const canvas = document.getElementById("sketchpad") as HTMLCanvasElement;
@@ -242,6 +252,11 @@ const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
 const customBin = document.getElementById("customBin") as HTMLDivElement;
+const exportModal = document.getElementById("exportModal") as HTMLDivElement;
+const transparentBtn = document.getElementById(
+  "exportTransparentBtn",
+) as HTMLButtonElement;
+const whiteBtn = document.getElementById("exportWhiteBtn") as HTMLButtonElement;
 
 // currentThickness determines the thickness for the next line drawn
 let currentThickness = 1;
@@ -410,22 +425,40 @@ clearBtn.onclick = () => {
   canvas.dispatchEvent(new Event("drawing-changed"));
 };
 
-// Add Export button to the UI
 exportBtn.onclick = () => {
-  // Create a new offscreen canvas
+  exportModal.style.display = "flex";
+};
+
+transparentBtn.onclick = () => {
+  exportModal.style.display = "none";
+  exportImage(false); // transparent
+};
+
+whiteBtn.onclick = () => {
+  exportModal.style.display = "none";
+  exportImage(true); // white background
+};
+
+// Add Export functionality to the UI
+function exportImage(useWhiteBackground) {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
-  const exportCtx = exportCanvas.getContext("2d")!;
-  // Scale context so 512x512 content fills 1024x1024
+  const exportCtx = exportCanvas.getContext("2d");
+
+  if (useWhiteBackground) {
+    exportCtx.fillStyle = "#ffffff";
+    exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  }
+
   exportCtx.save();
   exportCtx.scale(2, 2);
-  // Draw all display list items (no preview)
+
   for (const stroke of strokes) {
     stroke.display(exportCtx);
   }
   exportCtx.restore();
-  // Download as PNG
+
   exportCanvas.toBlob((blob) => {
     if (!blob) return;
     const url = URL.createObjectURL(blob);
@@ -439,7 +472,7 @@ exportBtn.onclick = () => {
       URL.revokeObjectURL(url);
     }, 100);
   }, "image/png");
-};
+}
 
 // Redraw handler — listens to custom "drawing-changed" events
 canvas.addEventListener("drawing-changed", () => {
