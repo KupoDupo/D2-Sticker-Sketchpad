@@ -440,11 +440,12 @@ whiteBtn.onclick = () => {
 };
 
 // Add Export functionality to the UI
-function exportImage(useWhiteBackground) {
+function exportImage(useWhiteBackground: boolean) {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
-  const exportCtx = exportCanvas.getContext("2d");
+  // ! point assets that it is not null (since getContext can return 2D context or null)
+  const exportCtx = exportCanvas.getContext("2d")!;
 
   if (useWhiteBackground) {
     exportCtx.fillStyle = "#ffffff";
