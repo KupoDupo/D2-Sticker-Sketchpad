@@ -417,9 +417,9 @@ exportBtn.onclick = () => {
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
   const exportCtx = exportCanvas.getContext("2d")!;
-  // Scale context so 256x256 content fills 1024x1024
+  // Scale context so 512x512 content fills 1024x1024
   exportCtx.save();
-  exportCtx.scale(4, 4);
+  exportCtx.scale(2, 2);
   // Draw all display list items (no preview)
   for (const stroke of strokes) {
     stroke.display(exportCtx);
