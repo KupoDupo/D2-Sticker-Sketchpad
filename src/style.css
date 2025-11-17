@@ -13,9 +13,37 @@ body {
 }
 
 button {
+  text-align: center;
   font-family: "Delius", cursive;
   font-weight: 400;
   font-style: normal;
+  border-radius: 30px;
+  padding: 0.2rem 0.6rem;
+  font-size: 1rem;
+  margin-right: 0.3rem;
+  cursor: pointer;
+  border-width: 3px;
+  border-color: gray;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  background-image: radial-gradient(circle, #b3b3b3, #bcbcbc);
+  color: black;
+  opacity: 0.5;
+}
+
+input {
+  cursor: pointer;
+  background-color: #eccda9;
+  border-radius: 30px;
+  border-width: 3px;
+  border-color: #323232ff;
+}
+
+canvas {
+  border: 8px solid rgb(44, 44, 44);
+  border-radius: 30px;
 }
 
 .title {
@@ -41,7 +69,60 @@ button {
   flex-direction: column;
 }
 
+#pens button {
+  background-image: radial-gradient(circle, #eeaea0, #ece0a9);
+}
+
+#pens button:disabled {
+  background-image: radial-gradient(circle, #b3b3b3, #bcbcbc);
+  color: black;
+  opacity: 0.5;
+}
+
+#stickers button {
+  background-image: radial-gradient(circle, #c7eea0, #98c991);
+}
+
+#stickers button:disabled {
+  background-image: radial-gradient(circle, #b3b3b3, #bcbcbc);
+  color: black;
+  opacity: 0.5;
+}
+
+#custom button {
+  background-image: radial-gradient(circle, #a0eeea, #8c9bc7);
+}
+
+#actions button {
+  background-image: radial-gradient(circle, #b7a0ee, #dca9ec);
+}
+
+#export button {
+  background-image: radial-gradient(circle, #eea0e2, #c78cb6);
+}
+
 @media screen and (max-width: 600px) {
+  body {
+    overflow-y: auto;
+    text-align: center;
+    height: 100vh;
+    margin: 0px;
+  }
+
+  button {
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+
+  h2 {
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+
+  .tool-group {
+    margin-bottom: 1rem;
+  }
+
   #sketchpad {
     width: 256px;
     height: 256px;
@@ -49,5 +130,6 @@ button {
 
   .sketchwrap {
     flex-direction: column;
+    gap: 0px;
   }
 }

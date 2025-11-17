@@ -6,7 +6,7 @@ document.body.innerHTML = `
   <div class="title">
     <h1>Sticker Sketchpad</h1>
 
-    <canvas id="sketchpad" style="border:1px solid black;"></canvas>
+    <canvas id="sketchpad"></canvas>
   </div>
   <div class="tools-container">
     <div id="tools">
@@ -14,6 +14,7 @@ document.body.innerHTML = `
         <h2>Markers</h2>
         <button id="thinBtn">Thin</button>
         <button id="thickBtn">Thick</button>
+        <button id="highlightBtn">Highlight</button>
         <div id="colorBin"></div>
       </div>
       <div id="stickers" class="tool-group">
@@ -25,6 +26,7 @@ document.body.innerHTML = `
       <div id="custom" class="tool-group">
         <h2>Custom Sticker</h2>
         <button id="customBtn">+ Custom</button>
+        <div id="customBin"></div>
       </div>
       <div id="actions" class="tool-group">
         <h2>Actions</h2>
@@ -67,10 +69,12 @@ export interface MarkerLineConstructor {
 class SimpleMarkerLine implements MarkerLine {
   private points: Point[];
   private thickness: number;
+  private opacity: number;
 
-  constructor(x: number, y: number, thickness = 1) {
+  constructor(x: number, y: number, thickness = 1, opacity = 1) {
     this.points = [{ x, y }];
     this.thickness = thickness;
+    this.opacity = opacity;
   }
 
   drag(x: number, y: number) {
@@ -81,6 +85,7 @@ class SimpleMarkerLine implements MarkerLine {
     if (this.points.length === 0) return;
 
     ctx.lineWidth = this.thickness;
+    ctx.globalAlpha = this.opacity;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
@@ -226,6 +231,7 @@ const cursor = { active: false, x: 0, y: 0 };
 
 const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
 const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
+const hlBtn = document.getElementById("highlightBtn") as HTMLButtonElement;
 const colorBin = document.getElementById("colorBin") as HTMLDivElement;
 const flowerBtn = document.getElementById("flowerBtn") as HTMLButtonElement;
 const teddyBtn = document.getElementById("teddyBtn") as HTMLButtonElement;
@@ -235,9 +241,11 @@ const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
+const customBin = document.getElementById("customBin") as HTMLDivElement;
 
 // currentThickness determines the thickness for the next line drawn
 let currentThickness = 1;
+let currentOpacity = 1;
 
 // currentEmoji tracks the active emoji tool, or null if no emoji tool is selected
 let currentEmoji: string | null = null;
@@ -254,6 +262,7 @@ function createCustomStickerButton(sticker: string, index: number) {
     // disable all other buttons and enable others
     thinBtn.disabled = false;
     thickBtn.disabled = false;
+    hlBtn.disabled = false;
     flowerBtn.disabled = false;
     teddyBtn.disabled = false;
     sparkleBtn.disabled = false;
@@ -267,28 +276,55 @@ function createCustomStickerButton(sticker: string, index: number) {
   };
   btn.setAttribute("data-custom", "true");
   btn.setAttribute("data-index", String(index));
-  // insert before undo button
-  undoBtn.parentNode?.insertBefore(btn, undoBtn);
+  // insert in custom row
+  customBin.parentNode?.insertBefore(btn, customBin);
 }
 
 // Tool button wiring
 thinBtn.onclick = () => {
   currentThickness = 1;
+  currentOpacity = 1;
   currentEmoji = null;
   thinBtn.disabled = true;
   thickBtn.disabled = false;
+  hlBtn.disabled = false;
   flowerBtn.disabled = false;
   teddyBtn.disabled = false;
   sparkleBtn.disabled = false;
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
 };
 thickBtn.onclick = () => {
   currentThickness = 4;
+  currentOpacity = 1;
   currentEmoji = null;
   thickBtn.disabled = true;
   thinBtn.disabled = false;
+  hlBtn.disabled = false;
   flowerBtn.disabled = false;
   teddyBtn.disabled = false;
   sparkleBtn.disabled = false;
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
+};
+hlBtn.onclick = () => {
+  currentThickness = 10;
+  currentOpacity = 0.3;
+  currentEmoji = null;
+  thickBtn.disabled = false;
+  thinBtn.disabled = false;
+  hlBtn.disabled = true;
+  flowerBtn.disabled = false;
+  teddyBtn.disabled = false;
+  sparkleBtn.disabled = false;
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
 };
 flowerBtn.onclick = () => {
   currentEmoji = "🌸";
@@ -297,6 +333,11 @@ flowerBtn.onclick = () => {
   sparkleBtn.disabled = false;
   thinBtn.disabled = false;
   thickBtn.disabled = false;
+  hlBtn.disabled = false;
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
 };
 teddyBtn.onclick = () => {
   currentEmoji = "🧸";
@@ -305,6 +346,11 @@ teddyBtn.onclick = () => {
   sparkleBtn.disabled = false;
   thinBtn.disabled = false;
   thickBtn.disabled = false;
+  hlBtn.disabled = false;
+  const customBtns = document.querySelectorAll("button[data-custom]");
+  customBtns.forEach((b) => {
+    (b as HTMLButtonElement).disabled = false;
+  });
 };
 sparkleBtn.onclick = () => {
   currentEmoji = "✨";
@@ -314,6 +360,7 @@ sparkleBtn.onclick = () => {
   thinBtn.disabled = false;
   thickBtn.disabled = false;
   customBtn.disabled = false;
+  hlBtn.disabled = false;
   // disable all custom sticker buttons
   const customBtns = document.querySelectorAll("button[data-custom]");
   customBtns.forEach((b) => {
@@ -421,7 +468,9 @@ canvas.addEventListener("mousedown", (e) => {
   if (currentEmoji) {
     strokes.push(new Sticker(cursor.x, cursor.y, currentEmoji));
   } else {
-    strokes.push(createMarkerLine(cursor.x, cursor.y, currentThickness));
+    strokes.push(
+      createMarkerLine(cursor.x, cursor.y, currentThickness, currentOpacity),
+    );
   }
   // clear redo stack because new user input invalidates redo history
   redoStack.length = 0;
@@ -437,6 +486,7 @@ canvas.addEventListener("mousemove", (e) => {
         y: e.offsetY,
         active: cursor.active,
         thickness: currentThickness,
+        opacity: currentOpacity,
       },
     }),
   );
@@ -511,8 +561,8 @@ colorInput.oninput = (e) => {
 // Color-aware marker line implementation
 class SimpleMarkerLineWithColor extends SimpleMarkerLine {
   private color: string;
-  constructor(x: number, y: number, thickness = 1, color: string) {
-    super(x, y, thickness);
+  constructor(x: number, y: number, thickness = 1, opacity = 1, color: string) {
+    super(x, y, thickness, opacity);
     this.color = color;
   }
   override display(ctx: CanvasRenderingContext2D) {
@@ -525,6 +575,11 @@ class SimpleMarkerLineWithColor extends SimpleMarkerLine {
 }
 
 // Factory function for creating marker lines with the current color
-function createMarkerLine(x: number, y: number, thickness: number) {
-  return new SimpleMarkerLineWithColor(x, y, thickness, currentColor);
+function createMarkerLine(
+  x: number,
+  y: number,
+  thickness: number,
+  opacity = 1,
+) {
+  return new SimpleMarkerLineWithColor(x, y, thickness, opacity, currentColor);
 }
